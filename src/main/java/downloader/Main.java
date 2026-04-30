@@ -10,6 +10,6 @@ public class Main {
         Client client = new Client(url);
         Orchestrator orchestrator = new Orchestrator(savePath, client);
 
-        orchestrator.downloadFile(url);
+        orchestrator.downloadFile(url, 2);
     }
 }

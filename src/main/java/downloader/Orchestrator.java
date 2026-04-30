@@ -10,6 +10,7 @@ import java.nio.file.Path;
 public class Orchestrator {
     FileChannel fileChannel;
     Client httpClient;
+    private static final int CORES = Runtime.getRuntime().availableProcessors();
 
     public Orchestrator(String path, Client httpClient) {
         this.httpClient = httpClient;
@@ -23,11 +24,10 @@ public class Orchestrator {
         }
     }
 
-    public void downloadFile(String url) {
+    public void downloadFile(String url, int threadPerCore) {
         // TODO: add here validation if server supports range queries (206)
         int fileSize = httpClient.getFizeSize();
-        int cores = Runtime.getRuntime().availableProcessors();
-        int threadsCount = cores * 2;
+        int threadsCount = CORES * threadPerCore;
         int chunkSize = fileSize / threadsCount;
 
         Client client = new Client(url);
