@@ -23,9 +23,8 @@ public class DownloadWorker implements Runnable{
             byte[] data = httpClient.fetchChunk(range);
             fileChannel.write(ByteBuffer.wrap(data), range.start());
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            System.err.println("Failed chunk: " + range + " -> " + e.getMessage());
+            // TODO: maybe retry queue/ sth
         }
     }
-
-
 }

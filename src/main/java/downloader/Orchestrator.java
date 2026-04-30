@@ -19,11 +19,12 @@ public class Orchestrator {
             RandomAccessFile writer = new RandomAccessFile(path, "rw");
             fileChannel = writer.getChannel();
         } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Path " + path +"(not found): "  + " ", e);
         }
     }
 
     public void downloadFile(String url) {
+        // TODO: add here validation if server supports range queries (206)
         int fileSize = httpClient.getFizeSize();
         int cores = Runtime.getRuntime().availableProcessors();
         int threadsCount = cores * 2;
@@ -73,7 +74,7 @@ public class Orchestrator {
             this.fileChannel = writer.getChannel();
 
         } catch (IOException e) {
-            throw new RuntimeException("Failed to initialize file", e);
+            throw new RuntimeException("Failed to initialize save file: ", e);
         }
     }
 }
