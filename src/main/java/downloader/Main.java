@@ -1,6 +1,7 @@
 package downloader;
 
 public class Main {
+    private static final int THREADS_PER_CORE = 11;
 
     public static void main(String[] args) {
         String filename = "t_1gb.dat";
@@ -10,6 +11,6 @@ public class Main {
         Client client = new Client(url);
         Orchestrator orchestrator = new Orchestrator(savePath, client);
 
-        orchestrator.downloadFile(url, 2);
+        orchestrator.downloadFile(THREADS_PER_CORE);
     }
 }

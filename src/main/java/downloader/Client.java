@@ -7,12 +7,16 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class Client {
     private final URL url;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
     public Client(String url) {
         try {
@@ -70,7 +74,7 @@ public class Client {
         return body;
     }
 
-    public int getFizeSize() {
+    public int getFileSize() {
         try {
             var request = java.net.http.HttpRequest.newBuilder(url.toURI())
                     .method("HEAD", java.net.http.HttpRequest.BodyPublishers.noBody())

@@ -85,7 +85,7 @@ public class ThreadScalingBenchmark {
                     new downloader.Client(TEST_URL)
             );
 
-            orchestrator.downloadFile(TEST_URL, threadCount);
+            orchestrator.downloadFile(threadCount);
 
             Instant end = Instant.now();
 

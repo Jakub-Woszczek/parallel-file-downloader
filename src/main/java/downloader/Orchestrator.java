@@ -24,13 +24,11 @@ public class Orchestrator {
         }
     }
 
-    public void downloadFile(String url, int threadPerCore) {
+    public void downloadFile(int threadPerCore) {
         // TODO: add here validation if server supports range queries (206)
-        int fileSize = httpClient.getFizeSize();
+        int fileSize = httpClient.getFileSize();
         int threadsCount = CORES * threadPerCore;
-        int chunkSize = fileSize / threadsCount;
-
-        Client client = new Client(url);
+        int chunkSize = 10 * 1024 * 1024;
 
         Thread[] threads = new Thread[threadsCount];
         for (int i = 0; i < threadsCount; i++) {
@@ -42,7 +40,7 @@ public class Orchestrator {
             Range range = new Range(start, end);
 
             DownloadWorker worker =
-                    new DownloadWorker(fileChannel, client, range);
+                    new DownloadWorker(fileChannel, httpClient, range);
 
             threads[i] = new Thread(worker);
             threads[i].start();
