@@ -26,14 +26,14 @@ public class Orchestrator {
 
     public void downloadFile(int threadPerCore) {
         // TODO: add here validation if server supports range queries (206)
-        int fileSize = httpClient.getFileSize();
+        long fileSize = httpClient.getFileSize();
         int threadsCount = CORES * threadPerCore;
-        int chunkSize = 10 * 1024 * 1024;
+        long chunkSize = 10 * 1024 * 1024;
 
         Thread[] threads = new Thread[threadsCount];
         for (int i = 0; i < threadsCount; i++) {
-            int start = i * chunkSize;
-            int end = (i == threadsCount - 1)
+            long start = i * chunkSize;
+            long end = (i == threadsCount - 1)
                     ? fileSize
                     : start + chunkSize;
 

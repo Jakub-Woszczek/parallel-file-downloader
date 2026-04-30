@@ -1,7 +1,7 @@
 package downloader;
 
-public record Range(int start, int end) {
-    public int getLength() {
+public record Range(long start, long end) {
+    public long getLength() {
         return end - start;
     }
 }

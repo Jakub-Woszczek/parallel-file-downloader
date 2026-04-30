@@ -62,9 +62,9 @@ public class Client {
         // TODO: add validation if content range is in right format
 
         byte[] body = response.body();
-        int expectedLength = range.getLength();
+        long expectedLength = range.getLength();
 
-        if (body.length != expectedLength) {
+        if ((long) body.length != expectedLength) {
             // TODO: retry logic
             throw new RuntimeException(
                     "Chunk size mismatch. Expected " + expectedLength + " but got " + body.length
@@ -74,7 +74,7 @@ public class Client {
         return body;
     }
 
-    public int getFileSize() {
+    public long getFileSize() {
         try {
             var request = java.net.http.HttpRequest.newBuilder(url.toURI())
                     .method("HEAD", java.net.http.HttpRequest.BodyPublishers.noBody())
@@ -84,8 +84,8 @@ public class Client {
                     request,
                     java.net.http.HttpResponse.BodyHandlers.discarding()
             );
-            // TODO: int crash with file 10GB<
-            return Integer.parseInt(
+
+            return Long.parseLong(
                     response.headers()
                             .firstValue("Content-Length")
                             .orElseThrow()

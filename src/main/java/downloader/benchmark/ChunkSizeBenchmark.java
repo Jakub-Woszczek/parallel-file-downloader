@@ -17,10 +17,11 @@ public class ChunkSizeBenchmark {
         String[] testFiles = {
                 "t_100mb.dat",
                 "t_1gb.dat"
+//                "t_10gb.dat" TODO: perform this test (idle time)
         };
 
         List<Integer> chunkSizesMB = new ArrayList<>();
-        for (int i = 5; i <= 100; i += 5) {
+        for (int i = 30; i <= 100; i += 5) {
             chunkSizesMB.add(i);
         }
 
@@ -36,6 +37,7 @@ public class ChunkSizeBenchmark {
                 boolean skipped = false;
 
                 for (int t = 0; t < NUM_TRIES; t++) {
+                    System.out.println(t);
                     BenchResult result = testChunkSize(filename, chunkMB);
 
                     if (result == null) {
@@ -75,7 +77,7 @@ public class ChunkSizeBenchmark {
 
         try {
             Client client = new Client(url);
-            int fileSize = client.getFileSize();
+            long fileSize = client.getFileSize();
             int chunkSizeBytes = chunkSizeMB * 1024 * 1024;
 
             if (chunkSizeBytes >= fileSize) {
@@ -101,15 +103,15 @@ public class ChunkSizeBenchmark {
     private static void downloadWithFixedChunkSize(
             Client client,
             Path destination,
-            int fileSize,
+            long fileSize,
             int chunkSize) throws Exception {
 
         try (var raf = new java.io.RandomAccessFile(destination.toFile(), "rw");
              var channel = raf.getChannel()) {
 
-            int offset = 0;
+            long offset = 0;
             while (offset < fileSize) {
-                int end = Math.min(offset + chunkSize, fileSize);
+                long end = Math.min(offset + chunkSize, fileSize);
                 downloader.Range range = new downloader.Range(offset, end);
 
                 byte[] data = client.fetchChunk(range);
