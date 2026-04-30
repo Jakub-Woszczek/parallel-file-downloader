@@ -19,7 +19,7 @@ public class Orchestrator {
             RandomAccessFile writer = new RandomAccessFile(path, "rw");
             fileChannel = writer.getChannel();
         } catch (FileNotFoundException e) {
-            throw new IllegalArgumentException("Path " + path +"(not found): "  + " ", e);
+            throw new IllegalArgumentException("Path " + path + "(not found): " + " ", e);
         }
     }
 
@@ -33,7 +33,7 @@ public class Orchestrator {
         Client client = new Client(url);
 
         Thread[] threads = new Thread[threadsCount];
-        for  (int i = 0; i < threadsCount; i++) {
+        for (int i = 0; i < threadsCount; i++) {
             int start = i * chunkSize;
             int end = (i == threadsCount - 1)
                     ? fileSize
