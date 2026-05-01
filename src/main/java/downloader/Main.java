@@ -3,7 +3,7 @@ package downloader;
 public class Main {
     private static final int THREADS_PER_CORE = 11;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         String filename = "t_10gb.dat";
         String savePath = "src/test/resources/save/" + filename;
         String url = "http://localhost:8080/" + filename;

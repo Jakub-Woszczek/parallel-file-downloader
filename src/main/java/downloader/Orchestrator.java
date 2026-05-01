@@ -37,7 +37,7 @@ public class Orchestrator {
         }
     }
 
-    public void downloadFile(int threadPerCore) {
+    public void downloadFile(int threadPerCore) throws InterruptedException {
         // TODO: add here validation if server supports range queries (206)
         long fileSize = httpClient.getFileSize();
         int availableThreads = CORES * threadPerCore;

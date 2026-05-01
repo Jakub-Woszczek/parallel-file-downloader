@@ -8,10 +8,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Client {
+    private static final int MAX_RETRIES = 5;
+    private static final long INITIAL_BACKOFF_MS = 50;
+    private static final long MAX_BACKOFF = 5000;
     private final URL url;
     private final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
@@ -26,81 +28,112 @@ public class Client {
         }
     }
 
-    // TODO: rebuild to return CompletableFuture<byte[]> -> async pipeline
-    public byte[] fetchChunk(Range range) {
-        HttpRequest request = null;
+    public byte[] fetchChunk(Range range) throws InterruptedException {
+        HttpRequest request = buildRequest(range);
+        long backoff = INITIAL_BACKOFF_MS;
+
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                HttpResponse<byte[]> response =
+                        httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+
+                if (response.statusCode() == 206) {
+                    byte[] body = validateAndExtractBody(response, range);
+                    return body;
+                }
+
+                if (!isRetryableStatus(response.statusCode())) {
+                    throw new RuntimeException("Non-retryable status: " + response.statusCode());
+                }
+
+            } catch (IOException e) { // ? TBD: should RuntimeException be here ?
+                if (attempt == MAX_RETRIES) {
+                    throw new RuntimeException("Failed after retries", e);
+                }
+            }
+
+            sleepWithBackoff(backoff);
+            backoff = Math.min(MAX_BACKOFF, backoff * 2);
+        }
+
+        throw new RuntimeException("Exhausted retries without success");
+    }
+
+    private HttpRequest buildRequest(Range range) {
         try {
-            request = HttpRequest.newBuilder(url.toURI())
+            return HttpRequest.newBuilder(url.toURI())
                     .header("Range", "bytes=" + range.start() + "-" + (range.end() - 1))
                     .build();
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid URL/URI: " + url, e);
         }
+    }
 
-        // non-blocking
-        CompletableFuture<HttpResponse<byte[]>> future =
-                httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofByteArray());
-
-        HttpResponse<byte[]> response;
-        try {
-            response = future.get(); // blocking
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while waiting for chunk", e);
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-
-            if (cause instanceof IOException) {
-                // TODO: retry
-                throw new RuntimeException("Network failure during chunk download", cause);
-            }
-            throw new RuntimeException("Unexpected async failure", cause);
-        }
-        if (response.statusCode() != 206) {
-            throw new RuntimeException("Server did not return partial content. Status: " + response.statusCode());
-        }
-
-        // TODO: add validation if content range is in right format
-
+    private byte[] validateAndExtractBody(HttpResponse<byte[]> response, Range range) throws IOException {
         byte[] body = response.body();
         long expectedLength = range.getLength();
 
-        if ((long) body.length != expectedLength) {
-            // TODO: retry logic
-            throw new RuntimeException(
-                    "Chunk size mismatch. Expected " + expectedLength + " but got " + body.length
-            );
+        // TODO: verify Content-Range header
+        if (body.length != expectedLength) {
+            throw new IOException("Invalid chunk size");
         }
-
         return body;
     }
 
-    public long getFileSize() {
+    public long getFileSize() throws InterruptedException {
+        HttpRequest request = buildHeadRequest();
+        long backoff = INITIAL_BACKOFF_MS;
+
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                var response = httpClient.send(
+                        request,
+                        java.net.http.HttpResponse.BodyHandlers.discarding()
+                );
+
+                if (response.statusCode() == 200) {
+                    return extractContentLength(response);
+                }
+                if (!isRetryableStatus(response.statusCode())) {
+                    throw new RuntimeException("Non-retryable status: " + response.statusCode());
+                }
+
+            } catch (IOException | NumberFormatException | IllegalStateException e) {
+                if (attempt == MAX_RETRIES) {
+                    throw new RuntimeException("Failed after retries", e);
+                }
+            }
+
+            sleepWithBackoff(backoff);
+            backoff = Math.min(MAX_BACKOFF, backoff * 2);
+        }
+        throw new RuntimeException("Exhausted retries");
+    }
+
+    private HttpRequest buildHeadRequest() {
         try {
-            var request = java.net.http.HttpRequest.newBuilder(url.toURI())
-                    .method("HEAD", java.net.http.HttpRequest.BodyPublishers.noBody())
+            return HttpRequest.newBuilder(url.toURI())
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
                     .build();
-
-            var response = httpClient.send(
-                    request,
-                    java.net.http.HttpResponse.BodyHandlers.discarding()
-            );
-
-            return Long.parseLong(
-                    response.headers()
-                            .firstValue("Content-Length")
-                            .orElseThrow()
-            );
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Operation interrupted", e);
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid URL/URI: " + url, e);
-        } catch (IOException e) {
-            // TODO: retry logic
-            throw new RuntimeException("Download failed (network issue): " + e.getMessage(), e);
         }
     }
 
+    private long extractContentLength(HttpResponse<?> response) {
+        String value = response.headers()
+                .firstValue("Content-Length")
+                .orElseThrow(() -> new IllegalStateException("Missing Content-Length"));
+
+        return Long.parseLong(value);
+    }
+
+    private boolean isRetryableStatus(int status) {
+        return status == 408 || status == 429 || (status >= 500 && status < 600) || (status >= 200 && status < 300);
+    }
+
+    private void sleepWithBackoff(long backoff) throws InterruptedException {
+        long jitter = ThreadLocalRandom.current().nextLong(backoff);
+        Thread.sleep(backoff + jitter);
+    }
 }
