@@ -41,20 +41,24 @@ public class Orchestrator implements AutoCloseable {
         int threadsCount = computeChunks(fileSize, availableThreads);
 
         Thread[] threads = new Thread[threadsCount];
-        for (int i = 0; i < threadsCount; i++) {
+        try {
+            for (int i = 0; i < threadsCount; i++) {
+                DownloadWorker worker = new DownloadWorker(this, fileChannel, httpClient);
 
-            DownloadWorker worker = new DownloadWorker(this, fileChannel, httpClient);
-
-            threads[i] = new Thread(worker);
-            threads[i].start();
-        }
-
-        for (Thread thread : threads) {
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                threads[i] = new Thread(worker);
+                threads[i].start();
             }
+
+            for (Thread thread : threads) {
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            for (Thread t : threads) {
+                if (t != null) {
+                    t.interrupt();
+                }
+            }
+            throw e;
         }
     }
 
