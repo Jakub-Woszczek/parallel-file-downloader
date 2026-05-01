@@ -46,7 +46,7 @@ public class Client {
                     throw new RuntimeException("Non-retryable status: " + response.statusCode());
                 }
 
-            } catch (IOException e) { // ? TBD: should RuntimeException be here ?
+            } catch (IOException | InvalidContentRangeException e) { // ? TBD: should RuntimeException be here ?
                 if (attempt == MAX_RETRIES) {
                     throw new RuntimeException("Failed after retries", e);
                 }
@@ -69,15 +69,52 @@ public class Client {
         }
     }
 
-    private byte[] validateAndExtractBody(HttpResponse<byte[]> response, Range range) throws IOException {
+    private byte[] validateAndExtractBody(HttpResponse<byte[]> response, Range range) throws IOException, InvalidContentRangeException {
+        validateContentRange(response, range);
+
         byte[] body = response.body();
         long expectedLength = range.getLength();
 
-        // TODO: verify Content-Range header
         if (body.length != expectedLength) {
             throw new IOException("Invalid chunk size");
         }
         return body;
+    }
+
+    private void validateContentRange(HttpResponse<byte[]> response, Range requestedRange) throws InvalidContentRangeException {
+        String contentRange = response.headers()
+                .firstValue("Content-Range")
+                .orElseThrow(() -> new InvalidContentRangeException(
+                        "Missing Content-Range header"));
+
+        // Expected format: bytes start-end/total
+        if (!contentRange.startsWith("bytes ")) {
+            throw new InvalidContentRangeException("Invalid Content-Range format: " + contentRange);
+        }
+
+        try {
+            String rangePart = contentRange.substring(6).trim();
+            String[] parts = rangePart.split("[ /]");
+
+            String[] startEnd = parts[0].split("-");
+
+            long start = Long.parseLong(startEnd[0]);
+            long end = Long.parseLong(startEnd[1]);
+
+            long expectedStart = requestedRange.start();
+            long expectedEnd = requestedRange.end() - 1;
+
+            if (start != expectedStart || end != expectedEnd) {
+                throw new InvalidContentRangeException(
+                        "Server returned mismatched range. Expected: " +
+                                expectedStart + "-" + expectedEnd +
+                                " but got: " + start + "-" + end);
+            }
+
+        } catch (Exception e) {
+            throw new InvalidContentRangeException(
+                    "Failed to parse Content-Range: " + contentRange, e);
+        }
     }
 
     public long getFileSize() throws InterruptedException {
