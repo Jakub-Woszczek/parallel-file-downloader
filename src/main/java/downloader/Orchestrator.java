@@ -7,8 +7,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class Orchestrator {
+public class Orchestrator implements AutoCloseable {
     FileChannel fileChannel;
+    RandomAccessFile randomAccessFile;
     Client httpClient;
     private static final int CORES = Runtime.getRuntime().availableProcessors();
     private static final long MB_SIZE = 1024 * 1024;
@@ -26,7 +27,8 @@ public class Orchestrator {
 
     public Orchestrator(String path, Client httpClient) {
         this.httpClient = httpClient;
-        prepareSaveFile(path);
+        this.randomAccessFile = prepareSaveFile(path);
+        this.fileChannel = randomAccessFile.getChannel();
     }
 
     public void downloadFile(int threadPerCore) throws InterruptedException {
@@ -92,7 +94,7 @@ public class Orchestrator {
         }
     }
 
-    public void prepareSaveFile(String path) {
+    public RandomAccessFile prepareSaveFile(String path) {
         try {
             Path filePath = Path.of(path);
 
@@ -104,11 +106,20 @@ public class Orchestrator {
             Files.deleteIfExists(filePath); // creating logic of 'file (1).txt' is not crucial in this task
             Files.createFile(filePath);
 
-            RandomAccessFile writer = new RandomAccessFile(filePath.toFile(), "rw");
-            this.fileChannel = writer.getChannel();
+            return new RandomAccessFile(filePath.toFile(), "rw");
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize save file: ", e);
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (fileChannel != null) {
+            fileChannel.close();
+        }
+        if (randomAccessFile != null) {
+            randomAccessFile.close();
         }
     }
 }
