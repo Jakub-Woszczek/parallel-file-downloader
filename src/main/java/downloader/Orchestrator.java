@@ -6,16 +6,29 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Orchestrator {
     FileChannel fileChannel;
     Client httpClient;
     private static final int CORES = Runtime.getRuntime().availableProcessors();
+    private static final long MB_SIZE = 1024 * 1024;
+    private static final long GB_SIZE = 1024 * 1024 * 1024;
+    private static final long MIN_CHUNK = 50L * MB_SIZE;
+    private static final long MAX_CHUNK = 80L * MB_SIZE;
+    private static final long CHUNK_SIZE = 10 * MB_SIZE;
+    /*
+     * Shared resources:
+     * indexArray - list of ranges defined as (L[i], L[i+1]).
+     */
+    private final ReentrantLock lock = new ReentrantLock();
+    private int chunkIndex = 0;
+    private long[] indexArray;
 
     public Orchestrator(String path, Client httpClient) {
         this.httpClient = httpClient;
         prepareSaveFile(path);
-
+        // TODO: make list of ranges for threads, accessed by mutex
         try {
             RandomAccessFile writer = new RandomAccessFile(path, "rw");
             fileChannel = writer.getChannel();
@@ -27,20 +40,13 @@ public class Orchestrator {
     public void downloadFile(int threadPerCore) {
         // TODO: add here validation if server supports range queries (206)
         long fileSize = httpClient.getFileSize();
-        int threadsCount = CORES * threadPerCore;
-        long chunkSize = 10 * 1024 * 1024;
+        int availableThreads = CORES * threadPerCore;
+        int threadsCount = computeChunks(fileSize, availableThreads);
 
         Thread[] threads = new Thread[threadsCount];
         for (int i = 0; i < threadsCount; i++) {
-            long start = i * chunkSize;
-            long end = (i == threadsCount - 1)
-                    ? fileSize
-                    : start + chunkSize;
 
-            Range range = new Range(start, end);
-
-            DownloadWorker worker =
-                    new DownloadWorker(fileChannel, httpClient, range);
+            DownloadWorker worker = new DownloadWorker(this, fileChannel, httpClient);
 
             threads[i] = new Thread(worker);
             threads[i].start();
@@ -52,6 +58,46 @@ public class Orchestrator {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        }
+    }
+
+    // TODO: make test if thread makes one request given chunk size as file size
+    private int computeChunks(long fileSize, int threadsCount) {
+//        long chunkSize = (fileSize < GB_SIZE)
+//                ? MIN_CHUNK
+//                : MAX_CHUNK;
+
+        int chunksAmount = (int) Math.ceil((double) fileSize / CHUNK_SIZE);
+
+        if (chunksAmount < threadsCount) {
+            threadsCount = chunksAmount;
+        }
+
+        // Initialization
+        indexArray = new long[chunksAmount + 1];
+        for (int i = 0; i < chunksAmount; i++) {
+            indexArray[i] = i * CHUNK_SIZE;
+        }
+        indexArray[chunksAmount] = fileSize;
+
+        return threadsCount;
+    }
+
+    public Range aquireChunkRange() {
+        lock.lock();
+        // no more chunks
+        if (chunkIndex >= indexArray.length - 1) {
+            lock.unlock();
+            return null;
+        }
+
+        try {
+            long start = indexArray[chunkIndex];
+            long end = indexArray[chunkIndex + 1];
+            chunkIndex++;
+            return new Range(start, end);
+        } finally {
+            lock.unlock();
         }
     }
 

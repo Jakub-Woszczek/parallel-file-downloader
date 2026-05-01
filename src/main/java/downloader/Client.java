@@ -51,6 +51,7 @@ public class Client {
             Throwable cause = e.getCause();
 
             if (cause instanceof IOException) {
+                // TODO: retry
                 throw new RuntimeException("Network failure during chunk download", cause);
             }
             throw new RuntimeException("Unexpected async failure", cause);

@@ -7,22 +7,29 @@ public class DownloadWorker implements Runnable {
 
     Client httpClient;
     FileChannel fileChannel;
-    Range range;
+    Orchestrator orchestrator;
 
-    public DownloadWorker(FileChannel fileChannel, Client httpClient, Range range) {
+    public DownloadWorker(Orchestrator orchestrator, FileChannel fileChannel, Client httpClient) {
         this.fileChannel = fileChannel;
         this.httpClient = httpClient;
-        this.range = range;
+        this.orchestrator = orchestrator;
     }
 
     @Override
     public void run() {
-        try {
-            byte[] data = httpClient.fetchChunk(range);
-            fileChannel.write(ByteBuffer.wrap(data), range.start());
-        } catch (Exception e) {
-            System.err.println("Failed chunk: " + range + " -> " + e.getMessage());
-            // TODO: maybe retry queue/ sth
+        while (true) {
+            Range range = orchestrator.aquireChunkRange();
+            if (range == null) {
+                break;
+            }
+
+            try {
+                byte[] data = httpClient.fetchChunk(range);
+                fileChannel.write(ByteBuffer.wrap(data), range.start());
+            } catch (Exception e) {
+                System.err.println("Failed chunk: " + range + " -> " + e.getMessage());
+                // TODO: maybe retry queue/ sth
+            }
         }
     }
 }
