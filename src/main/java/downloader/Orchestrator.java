@@ -1,6 +1,5 @@
 package downloader;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
@@ -19,7 +18,7 @@ public class Orchestrator {
     private static final long CHUNK_SIZE = 10 * MB_SIZE;
     /*
      * Shared resources:
-     * indexArray - list of ranges defined as (L[i], L[i+1]).
+     * indexArray - list of ranges for i-th chunk defined as (L[i], L[i+1]).
      */
     private final ReentrantLock lock = new ReentrantLock();
     private int chunkIndex = 0;
@@ -28,17 +27,13 @@ public class Orchestrator {
     public Orchestrator(String path, Client httpClient) {
         this.httpClient = httpClient;
         prepareSaveFile(path);
-        // TODO: make list of ranges for threads, accessed by mutex
-        try {
-            RandomAccessFile writer = new RandomAccessFile(path, "rw");
-            fileChannel = writer.getChannel();
-        } catch (FileNotFoundException e) {
-            throw new IllegalArgumentException("Path " + path + "(not found): " + " ", e);
-        }
     }
 
     public void downloadFile(int threadPerCore) throws InterruptedException {
-        // TODO: add here validation if server supports range queries (206)
+        if (!httpClient.supportsRangeRequests()) {
+            throw new IllegalStateException("Server does not support HTTP range requests (206).");
+        }
+
         long fileSize = httpClient.getFileSize();
         int availableThreads = CORES * threadPerCore;
         int threadsCount = computeChunks(fileSize, availableThreads);
@@ -63,12 +58,8 @@ public class Orchestrator {
 
     // TODO: make test if thread makes one request given chunk size as file size
     private int computeChunks(long fileSize, int threadsCount) {
-//        long chunkSize = (fileSize < GB_SIZE)
-//                ? MIN_CHUNK
-//                : MAX_CHUNK;
 
         int chunksAmount = (int) Math.ceil((double) fileSize / CHUNK_SIZE);
-
         if (chunksAmount < threadsCount) {
             threadsCount = chunksAmount;
         }
@@ -101,7 +92,6 @@ public class Orchestrator {
         }
     }
 
-    // TODO: workaround deleting file
     public void prepareSaveFile(String path) {
         try {
             Path filePath = Path.of(path);
@@ -111,7 +101,7 @@ public class Orchestrator {
                 Files.createDirectories(parent);
             }
 
-            Files.deleteIfExists(filePath);
+            Files.deleteIfExists(filePath); // creating logic of 'file (1).txt' is not crucial in this task
             Files.createFile(filePath);
 
             RandomAccessFile writer = new RandomAccessFile(filePath.toFile(), "rw");

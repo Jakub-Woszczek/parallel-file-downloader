@@ -136,4 +136,29 @@ public class Client {
         long jitter = ThreadLocalRandom.current().nextLong(backoff);
         Thread.sleep(backoff + jitter);
     }
+
+    public boolean supportsRangeRequests() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(url.toURI())
+                    .header("Range", "bytes=0-0")
+                    .GET()
+                    .build();
+
+            HttpResponse<Void> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() != 206) {
+                return false;
+            }
+
+            String contentRange = response.headers()
+                    .firstValue("Content-Range")
+                    .orElse("");
+
+            return contentRange.startsWith("bytes 0-0");
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }
