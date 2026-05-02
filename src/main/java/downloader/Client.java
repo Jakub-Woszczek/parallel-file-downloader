@@ -59,6 +59,14 @@ public class Client {
         throw new RuntimeException("Exhausted retries without success");
     }
 
+    /*
+    HTTP request if inclusive on end byte:
+    curl -H "Range: bytes=0-2" http://localhost:8080/file1.txt
+    > ask
+
+    so when chunk size is 3, I have index array like this: [0,3,6,...]
+    so the second byte is not inclusive and i decrease it in header
+     */
     private HttpRequest buildRequest(Range range) {
         try {
             return HttpRequest.newBuilder(url.toURI())

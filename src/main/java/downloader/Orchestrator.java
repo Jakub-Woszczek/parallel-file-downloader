@@ -14,9 +14,8 @@ public class Orchestrator implements AutoCloseable {
     private static final int CORES = Runtime.getRuntime().availableProcessors();
     private static final long MB_SIZE = 1024 * 1024;
     private static final long GB_SIZE = 1024 * 1024 * 1024;
-    private static final long MIN_CHUNK = 50L * MB_SIZE;
-    private static final long MAX_CHUNK = 80L * MB_SIZE;
     private static final long CHUNK_SIZE = 10 * MB_SIZE;
+    private static final int THREADS_PER_CORE = 11;
     /*
      * Shared resources:
      * indexArray - list of ranges for i-th chunk defined as (L[i], L[i+1]).
@@ -31,13 +30,13 @@ public class Orchestrator implements AutoCloseable {
         this.fileChannel = randomAccessFile.getChannel();
     }
 
-    public void downloadFile(int threadPerCore) throws InterruptedException {
+    public void downloadFile() throws InterruptedException {
         if (!httpClient.supportsRangeRequests()) {
             throw new IllegalStateException("Server does not support HTTP range requests (206).");
         }
 
         long fileSize = httpClient.getFileSize();
-        int availableThreads = CORES * threadPerCore;
+        int availableThreads = CORES * THREADS_PER_CORE;
         int threadsCount = computeChunks(fileSize, availableThreads);
 
         Thread[] threads = new Thread[threadsCount];
