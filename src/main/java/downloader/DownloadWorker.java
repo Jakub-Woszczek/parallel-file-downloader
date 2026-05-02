@@ -48,7 +48,7 @@ public class DownloadWorker implements Runnable {
 
                 if (end > fileSize) {
                     throw new IllegalArgumentException(
-                            "Invalid chunkRange: end exceeds file size: " + end + "fileSize: " + fileSize
+                            "Invalid chunkRange: end exceeds file size: " + end + ", fileSize: " + fileSize
                     );
                 }
 

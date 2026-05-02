@@ -28,8 +28,15 @@ class DownloadWorkerWriteTest {
         raf.setLength(100);
 
         fileChannel = raf.getChannel();
+        Client dummyClient = new Client("http://0.0.0.0");
+        Orchestrator orchestrator = new Orchestrator(tempDir.toString() + "f.txt", dummyClient) {
+            @Override
+            public long getFileSize() {
+                return 100;
+            }
+        };
 
-        worker = new DownloadWorker(null, fileChannel, null);
+        worker = new DownloadWorker(orchestrator, fileChannel, null);
     }
 
     @AfterEach
