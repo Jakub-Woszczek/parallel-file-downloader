@@ -58,7 +58,7 @@ public class DownloadWorker implements Runnable {
                     );
                 }
 
-                fileChannel.write(ByteBuffer.wrap(data), start);
+                fileChannel.write(ByteBuffer.wrap(data), start); // TODO: check if wrote data length
                 break;
 
             } catch (IOException e) {
@@ -68,7 +68,7 @@ public class DownloadWorker implements Runnable {
                 }
 
                 try {
-                    Thread.sleep(100 * attempts);
+                    Thread.sleep(100L * attempts);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("Write retry interrupted", ie);

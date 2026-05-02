@@ -38,8 +38,7 @@ public class Client implements AutoCloseable {
                         httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
                 if (response.statusCode() == 206) {
-                    byte[] body = validateAndExtractBody(response, chunkRange);
-                    return body;
+                    return validateAndExtractBody(response, chunkRange);
                 }
 
                 if (!isRetryableStatus(response.statusCode())) {
@@ -65,7 +64,7 @@ public class Client implements AutoCloseable {
     > ask
 
     so when chunk size is 3, I have index array like this: [0,3,6,...]
-    so the second byte is not inclusive and i decrease it in header
+    so the second byte is not inclusive and I decrease it in header
      */
     private HttpRequest buildRequest(ChunkRange chunkRange) {
         try {
@@ -208,6 +207,6 @@ public class Client implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
     }
 }

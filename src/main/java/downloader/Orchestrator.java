@@ -8,9 +8,9 @@ import java.nio.file.Path;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Orchestrator implements AutoCloseable {
-    FileChannel fileChannel;
-    RandomAccessFile randomAccessFile;
-    Client httpClient;
+    final FileChannel fileChannel;
+    final RandomAccessFile randomAccessFile;
+    final Client httpClient;
     private static final int CORES = Runtime.getRuntime().availableProcessors();
     private static final long MB_SIZE = 1024 * 1024;
     private static final long GB_SIZE = 1024 * 1024 * 1024;
