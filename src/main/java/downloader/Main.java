@@ -1,17 +1,22 @@
 package downloader;
 
 public class Main {
-    private static final String SAVE_PATH = "src/test/resources/save/";
-    private static final String FILENAME = "t_1gb.dat";
-
     public static void main(String[] args) throws InterruptedException {
-        String filename = "t_10gb.dat";
-//        String savePath = "src/test/resources/save/" + filename;
-        String url = "http://localhost:8080/" + FILENAME;
+        if (args.length < 2) {
+            System.err.println("Usage: java downloader.Main <url> <output-file>");
+            System.exit(1);
+        }
 
-        Client client = new Client(url);
-        Orchestrator orchestrator = new Orchestrator(SAVE_PATH + FILENAME, client);
+        String url = args[0];
+        String outputPath = args[1];
 
-        orchestrator.downloadFile();
+        try (Client client = new Client(url);
+             Orchestrator orchestrator = new Orchestrator(outputPath, client)) {
+            orchestrator.downloadFile();
+            System.out.println("Download completed: " + outputPath);
+        } catch (Exception e) {
+            System.err.println("Download failed: " + e.getMessage());
+            System.exit(1);
+        }
     }
 }

@@ -10,7 +10,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Client {
+public class Client implements AutoCloseable {
     private static final int MAX_RETRIES = 5;
     private static final long INITIAL_BACKOFF_MS = 50;
     private static final long MAX_BACKOFF = 5000;
@@ -205,5 +205,9 @@ public class Client {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    @Override
+    public void close() throws Exception {
     }
 }
