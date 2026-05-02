@@ -20,7 +20,7 @@ public class DownloadWorker implements Runnable {
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
-            Range range = orchestrator.aquireChunkRange();
+            Range range = orchestrator.acquireChunkRange();
             if (range == null) {
                 break;
             }

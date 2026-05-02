@@ -61,7 +61,6 @@ public class Orchestrator implements AutoCloseable {
         }
     }
 
-    // TODO: make test if thread makes one request given chunk size as file size
     private int computeChunks(long fileSize, int threadsCount) {
 
         int chunksAmount = (int) Math.ceil((double) fileSize / CHUNK_SIZE);
@@ -79,7 +78,7 @@ public class Orchestrator implements AutoCloseable {
         return threadsCount;
     }
 
-    public Range aquireChunkRange() {
+    public Range acquireChunkRange() {
         lock.lock();
         // no more chunks
         if (chunkIndex >= indexArray.length - 1) {
@@ -97,7 +96,7 @@ public class Orchestrator implements AutoCloseable {
         }
     }
 
-    public RandomAccessFile prepareSaveFile(String path) {
+    private RandomAccessFile prepareSaveFile(String path) {
         try {
             Path filePath = Path.of(path);
 
@@ -124,5 +123,13 @@ public class Orchestrator implements AutoCloseable {
         if (randomAccessFile != null) {
             randomAccessFile.close();
         }
+    }
+
+    public long getChunkSize() {
+        return CHUNK_SIZE;
+    }
+
+    public long[] getIndexArray() {
+        return indexArray;
     }
 }

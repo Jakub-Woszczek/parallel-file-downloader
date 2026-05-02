@@ -174,7 +174,7 @@ public class Client implements AutoCloseable {
     }
 
     private boolean isRetryableStatus(int status) {
-        return status == 408 || status == 429 || (status >= 500 && status < 600) || (status >= 200 && status < 300);
+        return status == 408 || status == 429 || (status >= 500 && status < 600);
     }
 
     private void sleepWithBackoff(long backoff) throws InterruptedException {
