@@ -1,5 +1,6 @@
 package downloader.benchmark;
 
+import downloader.ChunkRange;
 import downloader.Client;
 
 import java.nio.file.Files;
@@ -112,9 +113,9 @@ public class ChunkSizeBenchmark {
             long offset = 0;
             while (offset < fileSize) {
                 long end = Math.min(offset + chunkSize, fileSize);
-                downloader.Range range = new downloader.Range(offset, end);
+                ChunkRange chunkRange = new ChunkRange(offset, end);
 
-                byte[] data = client.fetchChunk(range);
+                byte[] data = client.fetchChunk(chunkRange);
                 channel.write(java.nio.ByteBuffer.wrap(data), offset);
 
                 offset = end;

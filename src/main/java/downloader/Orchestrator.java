@@ -78,7 +78,7 @@ public class Orchestrator implements AutoCloseable {
         return threadsCount;
     }
 
-    public Range acquireChunkRange() {
+    public ChunkRange acquireChunkRange() {
         lock.lock();
         // no more chunks
         if (chunkIndex >= indexArray.length - 1) {
@@ -90,7 +90,7 @@ public class Orchestrator implements AutoCloseable {
             long start = indexArray[chunkIndex];
             long end = indexArray[chunkIndex + 1];
             chunkIndex++;
-            return new Range(start, end);
+            return new ChunkRange(start, end);
         } finally {
             lock.unlock();
         }

@@ -48,7 +48,7 @@ class OrchestratorAcquireChunkTest {
 
     @Test
     void returnsCorrectFirstChunkRange() {
-        Range r = orchestrator.acquireChunkRange();
+        ChunkRange r = orchestrator.acquireChunkRange();
 
         assertNotNull(r);
         assertEquals(0, r.start());
@@ -66,10 +66,10 @@ class OrchestratorAcquireChunkTest {
 
     @Test
     void sequentialCallsReturnCorrectRanges() {
-        Range r1 = orchestrator.acquireChunkRange();
-        Range r2 = orchestrator.acquireChunkRange();
-        Range r3 = orchestrator.acquireChunkRange();
-        Range r4 = orchestrator.acquireChunkRange();
+        ChunkRange r1 = orchestrator.acquireChunkRange();
+        ChunkRange r2 = orchestrator.acquireChunkRange();
+        ChunkRange r3 = orchestrator.acquireChunkRange();
+        ChunkRange r4 = orchestrator.acquireChunkRange();
 
         assertNotNull(r1);
         assertNotNull(r2);
@@ -94,7 +94,7 @@ class OrchestratorAcquireChunkTest {
         orchestrator.acquireChunkRange();
 
         // next call should return null
-        Range r = orchestrator.acquireChunkRange();
+        ChunkRange r = orchestrator.acquireChunkRange();
 
         assertNull(r);
     }

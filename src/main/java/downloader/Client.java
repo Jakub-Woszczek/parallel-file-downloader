@@ -28,8 +28,8 @@ public class Client implements AutoCloseable {
         }
     }
 
-    public byte[] fetchChunk(Range range) throws InterruptedException {
-        HttpRequest request = buildRequest(range);
+    public byte[] fetchChunk(ChunkRange chunkRange) throws InterruptedException {
+        HttpRequest request = buildRequest(chunkRange);
         long backoff = INITIAL_BACKOFF_MS;
 
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -38,7 +38,7 @@ public class Client implements AutoCloseable {
                         httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
 
                 if (response.statusCode() == 206) {
-                    byte[] body = validateAndExtractBody(response, range);
+                    byte[] body = validateAndExtractBody(response, chunkRange);
                     return body;
                 }
 
@@ -61,27 +61,27 @@ public class Client implements AutoCloseable {
 
     /*
     HTTP request if inclusive on end byte:
-    curl -H "Range: bytes=0-2" http://localhost:8080/file1.txt
+    curl -H "ChunkRange: bytes=0-2" http://localhost:8080/file1.txt
     > ask
 
     so when chunk size is 3, I have index array like this: [0,3,6,...]
     so the second byte is not inclusive and i decrease it in header
      */
-    private HttpRequest buildRequest(Range range) {
+    private HttpRequest buildRequest(ChunkRange chunkRange) {
         try {
             return HttpRequest.newBuilder(url.toURI())
-                    .header("Range", "bytes=" + range.start() + "-" + (range.end() - 1))
+                    .header("Range", "bytes=" + chunkRange.start() + "-" + (chunkRange.end() - 1))
                     .build();
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid URL/URI: " + url, e);
         }
     }
 
-    private byte[] validateAndExtractBody(HttpResponse<byte[]> response, Range range) throws IOException, InvalidContentRangeException {
-        validateContentRange(response, range);
+    private byte[] validateAndExtractBody(HttpResponse<byte[]> response, ChunkRange chunkRange) throws IOException, InvalidContentRangeException {
+        validateContentRange(response, chunkRange);
 
         byte[] body = response.body();
-        long expectedLength = range.getLength();
+        long expectedLength = chunkRange.getLength();
 
         if (body.length != expectedLength) {
             throw new IOException("Invalid chunk size");
@@ -89,15 +89,15 @@ public class Client implements AutoCloseable {
         return body;
     }
 
-    private void validateContentRange(HttpResponse<byte[]> response, Range requestedRange) throws InvalidContentRangeException {
+    private void validateContentRange(HttpResponse<byte[]> response, ChunkRange requestedChunkRange) throws InvalidContentRangeException {
         String contentRange = response.headers()
-                .firstValue("Content-Range")
+                .firstValue("Content-ChunkRange")
                 .orElseThrow(() -> new InvalidContentRangeException(
-                        "Missing Content-Range header"));
+                        "Missing Content-ChunkRange header"));
 
         // Expected format: bytes start-end/total
         if (!contentRange.startsWith("bytes ")) {
-            throw new InvalidContentRangeException("Invalid Content-Range format: " + contentRange);
+            throw new InvalidContentRangeException("Invalid Content-ChunkRange format: " + contentRange);
         }
 
         try {
@@ -109,8 +109,8 @@ public class Client implements AutoCloseable {
             long start = Long.parseLong(startEnd[0]);
             long end = Long.parseLong(startEnd[1]);
 
-            long expectedStart = requestedRange.start();
-            long expectedEnd = requestedRange.end() - 1;
+            long expectedStart = requestedChunkRange.start();
+            long expectedEnd = requestedChunkRange.end() - 1;
 
             if (start != expectedStart || end != expectedEnd) {
                 throw new InvalidContentRangeException(
@@ -121,7 +121,7 @@ public class Client implements AutoCloseable {
 
         } catch (Exception e) {
             throw new InvalidContentRangeException(
-                    "Failed to parse Content-Range: " + contentRange, e);
+                    "Failed to parse Content-ChunkRange: " + contentRange, e);
         }
     }
 
@@ -197,7 +197,7 @@ public class Client implements AutoCloseable {
             }
 
             String contentRange = response.headers()
-                    .firstValue("Content-Range")
+                    .firstValue("Content-ChunkRange")
                     .orElse("");
 
             return contentRange.startsWith("bytes 0-0");

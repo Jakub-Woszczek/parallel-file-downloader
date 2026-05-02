@@ -20,14 +20,14 @@ public class DownloadWorker implements Runnable {
     @Override
     public void run() {
         while (!Thread.currentThread().isInterrupted()) {
-            Range range = orchestrator.acquireChunkRange();
-            if (range == null) {
+            ChunkRange chunkRange = orchestrator.acquireChunkRange();
+            if (chunkRange == null) {
                 break;
             }
 
             try {
-                byte[] data = httpClient.fetchChunk(range);
-                writeToFile(data, range);
+                byte[] data = httpClient.fetchChunk(chunkRange);
+                writeToFile(data, chunkRange);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
@@ -35,18 +35,36 @@ public class DownloadWorker implements Runnable {
         }
     }
 
-    private void writeToFile(byte[] data, Range range) {
+    private void writeToFile(byte[] data, ChunkRange chunkRange) {
         int attempts = 0;
 
         while (true) {
             try {
-                fileChannel.write(ByteBuffer.wrap(data), range.start());
+                long fileSize = fileChannel.size();
+
+                long start = chunkRange.start();
+                long end = chunkRange.end();
+                long length = chunkRange.getLength();
+
+                if (end > fileSize) {
+                    throw new IllegalArgumentException(
+                            "Invalid chunkRange: end exceeds file size: " + end + "fileSize: " + fileSize
+                    );
+                }
+
+                if (data.length != length) {
+                    throw new IllegalArgumentException(
+                            "Data length (" + data.length + ") does not match chunkRange length (" + length + ")"
+                    );
+                }
+
+                fileChannel.write(ByteBuffer.wrap(data), start);
                 break;
 
             } catch (IOException e) {
                 attempts++;
                 if (attempts >= MAX_WRITES_ATTEMPTS) {
-                    throw new RuntimeException("Failed to write chunk after retries: " + range, e);
+                    throw new RuntimeException("Failed to write chunk after retries: " + chunkRange, e);
                 }
 
                 try {
