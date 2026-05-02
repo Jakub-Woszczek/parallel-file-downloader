@@ -11,6 +11,7 @@ public class Orchestrator implements AutoCloseable {
     final FileChannel fileChannel;
     final RandomAccessFile randomAccessFile;
     final Client httpClient;
+    long fileSize;
     private static final int CORES = Runtime.getRuntime().availableProcessors();
     private static final long MB_SIZE = 1024 * 1024;
     private static final long GB_SIZE = 1024 * 1024 * 1024;
@@ -35,9 +36,10 @@ public class Orchestrator implements AutoCloseable {
             throw new IllegalStateException("Server does not support HTTP range requests (206).");
         }
 
-        long fileSize = httpClient.getFileSize();
+        fileSize = httpClient.getFileSize();
         int availableThreads = CORES * THREADS_PER_CORE;
         int threadsCount = computeChunks(fileSize, availableThreads);
+        FileChannelUtils.truncateWithRetry(fileChannel, fileSize);
 
         Thread[] threads = new Thread[threadsCount];
         try {
@@ -131,5 +133,9 @@ public class Orchestrator implements AutoCloseable {
 
     public long[] getIndexArray() {
         return indexArray;
+    }
+
+    public long getFileSize() {
+        return fileSize;
     }
 }

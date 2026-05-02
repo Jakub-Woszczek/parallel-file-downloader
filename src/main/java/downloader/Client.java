@@ -90,9 +90,9 @@ public class Client implements AutoCloseable {
 
     private void validateContentRange(HttpResponse<byte[]> response, ChunkRange requestedChunkRange) throws InvalidContentRangeException {
         String contentRange = response.headers()
-                .firstValue("Content-ChunkRange")
+                .firstValue("Content-Range")
                 .orElseThrow(() -> new InvalidContentRangeException(
-                        "Missing Content-ChunkRange header"));
+                        "Missing Content-Range header"));
 
         // Expected format: bytes start-end/total
         if (!contentRange.startsWith("bytes ")) {
@@ -191,15 +191,7 @@ public class Client implements AutoCloseable {
 
             HttpResponse<Void> response =
                     httpClient.send(request, HttpResponse.BodyHandlers.discarding());
-            if (response.statusCode() != 206) {
-                return false;
-            }
-
-            String contentRange = response.headers()
-                    .firstValue("Content-ChunkRange")
-                    .orElse("");
-
-            return contentRange.startsWith("bytes 0-0");
+            return response.statusCode() == 206;
 
         } catch (Exception e) {
             return false;

@@ -40,7 +40,7 @@ public class DownloadWorker implements Runnable {
 
         while (true) {
             try {
-                long fileSize = fileChannel.size();
+                long fileSize = orchestrator.getFileSize();
 
                 long start = chunkRange.start();
                 long end = chunkRange.end();
