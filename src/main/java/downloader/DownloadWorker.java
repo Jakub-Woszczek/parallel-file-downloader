@@ -58,7 +58,16 @@ public class DownloadWorker implements Runnable {
                     );
                 }
 
-                fileChannel.write(ByteBuffer.wrap(data), start); // TODO: check if wrote data length
+                ByteBuffer buffer = ByteBuffer.wrap(data);
+                long position = start;
+
+                while (buffer.hasRemaining()) {
+                    int written = fileChannel.write(buffer, position);
+                    if (written <= 0) {
+                        throw new IOException("Failed to make progress writing chunk");
+                    }
+                    position += written;
+                }
                 break;
 
             } catch (IOException e) {
