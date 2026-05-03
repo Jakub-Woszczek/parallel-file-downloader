@@ -24,7 +24,8 @@ But it turned out that optimizing **chunk size & threads amount** for efficiency
 requires more fine-tuning that I passed on eventually during implementation of this task and focused on reliability
 and error handling.
 
-At the end I decided to go with params that wouldn't cause RAM shortage ($8 cores*11*10MB < 1GB$)
+At the end I decided to go with params that wouldn't cause RAM
+shortage $(8 \text{ cores} \cdot 11 \cdot 10\,\text{MB} < 1\,\text{GB})$
 
 ```java
 private static final long CHUNK_SIZE = 10 * MB_SIZE;

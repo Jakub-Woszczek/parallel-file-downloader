@@ -18,7 +18,7 @@ Each downloaded chunk is written directly to its correct position in the output
 file using `FileChannel`, ensuring proper placement without sequential writing.
 
 If an `IOException` occurs, the system retries the operation using an
-incremental backoff strategy implemented with `Thread.sleep(100L * attempts)`,
+incremental backoff strategy,
 and it ultimately fails once a configurable maximum number of attempts is reached.
 
 </details>
@@ -36,9 +36,7 @@ and it ultimately fails once a configurable maximum number of attempts is reache
   loading the entire file into memory.
 
 * **Data Integrity Validation**
-  Each downloaded chunk is validated against:
-
-    * Expected byte range, size
+  Each downloaded chunk is validated against expected byte range and size
 
 * number of worker threads is adjusted based on available CPU cores and the number of chunks, preventing
   unnecessary thread overhead.
