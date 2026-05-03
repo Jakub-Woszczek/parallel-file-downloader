@@ -7,6 +7,15 @@ import java.security.MessageDigest;
 
 public class HashUtils {
 
+    /**
+     * Computes SHA-256 hash of a file at the given path.
+     * The file is read in a streaming manner to avoid loading it entirely
+     * into memory, making it suitable for large files.
+     *
+     * @param path path to the file
+     * @return hexadecimal representation of SHA-256 hash
+     * @throws Exception if hashing algorithm is not available or I/O error occurs
+     */
     public static String sha256(Path path) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
 

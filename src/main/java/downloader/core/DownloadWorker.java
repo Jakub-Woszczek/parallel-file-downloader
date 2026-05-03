@@ -6,6 +6,13 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
+/**
+ * Worker responsible for downloading and writing file chunks.
+ * <p>
+ * Each worker repeatedly requests chunk ranges from the orchestrator,
+ * downloads them via HTTP, and writes them directly into the target file
+ * using positional writes.
+ */
 public class DownloadWorker implements Runnable {
 
     Client httpClient;
@@ -37,6 +44,22 @@ public class DownloadWorker implements Runnable {
         }
     }
 
+    /**
+     * Writes a downloaded chunk into the file at the correct position.
+     * <p>
+     * Uses positional writes to ensure thread-safe file access without
+     * explicit synchronization between workers.
+     * <p>
+     * Validates:
+     * - chunk bounds against file size
+     * - correctness of downloaded data length
+     * <p>
+     * Includes retry logic for transient I/O failures.
+     *
+     * @param data       downloaded byte array for the chunk
+     * @param chunkRange target byte range in the file
+     * @throws RuntimeException if writing fails after maximum retry attempts
+     */
     private void writeToFile(byte[] data, ChunkRange chunkRange) {
         int attempts = 0;
 

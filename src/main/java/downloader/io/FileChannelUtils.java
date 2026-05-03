@@ -7,6 +7,14 @@ public class FileChannelUtils {
 
     private static final int MAX_ATTEMPTS = 3;
 
+    /**
+     * Truncates the given file channel to the specified size with retry logic.
+     * Retries the operation on I/O failure using a backoff strategy.
+     *
+     * @param fileChannel the file channel to truncate
+     * @param size        target size in bytes
+     * @throws RuntimeException if truncation fails after maximum retry attempts
+     */
     public static void truncateWithRetry(FileChannel fileChannel, long size) {
         int attempts = 0;
 

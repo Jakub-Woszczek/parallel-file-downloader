@@ -12,6 +12,15 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * HTTP client responsible for interacting with a server that supports byte-range requests.
+ * Provides functionality for:
+ * - fetching file chunks using HTTP Range requests
+ * - validating server responses (e.g. Content-Range)
+ * - retrieving file metadata (e.g. Content-Length)
+ * <p>
+ * Includes retry logic with exponential backoff for resilience against transient failures.
+ */
 public class Client implements AutoCloseable {
     private static final int MAX_RETRIES = 5;
     private static final long INITIAL_BACKOFF_MS = 50;
@@ -30,6 +39,16 @@ public class Client implements AutoCloseable {
         }
     }
 
+    /**
+     * Downloads a specific byte range of a file using HTTP Range requests.
+     * Retries on transient failures and validates the response to ensure
+     * correctness of the returned data.
+     *
+     * @param chunkRange range of bytes to fetch
+     * @return byte array containing the requested chunk
+     * @throws InterruptedException if the thread is interrupted during retry backoff
+     * @throws RuntimeException     if the operation fails after all retry attempts
+     */
     public byte[] fetchChunk(ChunkRange chunkRange) throws InterruptedException {
         HttpRequest request = buildRequest(chunkRange);
         long backoff = INITIAL_BACKOFF_MS;
@@ -60,13 +79,12 @@ public class Client implements AutoCloseable {
         throw new RuntimeException("Exhausted retries without success");
     }
 
-    /*
-    HTTP request if inclusive on end byte:
-    curl -H "ChunkRange: bytes=0-2" http://localhost:8080/file1.txt
-    > ask
-
-    so when chunk size is 3, I have index array like this: [0,3,6,...]
-    so the second byte is not inclusive and I decrease it in header
+    /**
+     * Builds an HTTP GET request with a Range header for the given chunk.
+     * Note: The end offset is inclusive in HTTP, so it is adjusted accordingly.
+     *
+     * @param chunkRange requested byte range
+     * @return configured HttpRequest
      */
     private HttpRequest buildRequest(ChunkRange chunkRange) {
         try {
@@ -90,6 +108,15 @@ public class Client implements AutoCloseable {
         return body;
     }
 
+    /**
+     * Validates the Content-Range header returned by the server.
+     * Ensures that the response range matches the requested byte range.
+     *
+     * @param response            HTTP response containing Content-Range header
+     * @param requestedChunkRange originally requested range
+     * @throws InvalidContentRangeException if the header is missing, malformed,
+     *                                      or does not match the requested range
+     */
     private void validateContentRange(HttpResponse<byte[]> response, ChunkRange requestedChunkRange) throws InvalidContentRangeException {
         String contentRange = response.headers()
                 .firstValue("Content-Range")
@@ -126,6 +153,15 @@ public class Client implements AutoCloseable {
         }
     }
 
+    /**
+     * Retrieves the total file size using an HTTP HEAD request.
+     * Extracts and parses the Content-Length header, with retry logic
+     * for transient failures.
+     *
+     * @return file size in bytes
+     * @throws InterruptedException if the thread is interrupted during retry backoff
+     * @throws RuntimeException     if the operation fails after all retry attempts
+     */
     public long getFileSize() throws InterruptedException {
         HttpRequest request = buildHeadRequest();
         long backoff = INITIAL_BACKOFF_MS;

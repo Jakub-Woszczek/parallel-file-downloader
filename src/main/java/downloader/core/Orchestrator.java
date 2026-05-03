@@ -10,6 +10,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Coordinates the parallel file download process.
+ * Responsible for:
+ * - initializing the output file
+ * - splitting the file into chunks
+ * - managing worker threads
+ * - distributing chunk ranges safely between workers
+ */
 public class Orchestrator implements AutoCloseable {
     final FileChannel fileChannel;
     final RandomAccessFile randomAccessFile;
@@ -34,6 +42,14 @@ public class Orchestrator implements AutoCloseable {
         this.fileChannel = randomAccessFile.getChannel();
     }
 
+    /**
+     * Starts the download process.
+     * Validates server capabilities, computes chunk distribution,
+     * spawns worker threads, and waits for completion.
+     *
+     * @throws InterruptedException  if the download is interrupted
+     * @throws IllegalStateException if the server does not support range requests
+     */
     public void downloadFile() throws InterruptedException {
         if (!httpClient.supportsRangeRequests()) {
             throw new IllegalStateException("Server does not support HTTP range requests (206).");
@@ -66,6 +82,15 @@ public class Orchestrator implements AutoCloseable {
         }
     }
 
+    /**
+     * Splits the file into fixed-size chunks and initializes internal range mapping.
+     * Also adjusts the number of worker threads so it does not exceed
+     * the number of chunks.
+     *
+     * @param fileSize     total file size in bytes
+     * @param threadsCount desired number of threads
+     * @return effective number of threads to use
+     */
     private int computeChunks(long fileSize, int threadsCount) {
 
         int chunksAmount = (int) Math.ceil((double) fileSize / CHUNK_SIZE);
@@ -83,6 +108,12 @@ public class Orchestrator implements AutoCloseable {
         return threadsCount;
     }
 
+    /**
+     * Provides the next available chunk range in a thread-safe manner.
+     * Each chunk is assigned exactly once to a worker thread.
+     *
+     * @return next ChunkRange or null if no chunks remain
+     */
     public ChunkRange acquireChunkRange() {
         lock.lock();
         // no more chunks
