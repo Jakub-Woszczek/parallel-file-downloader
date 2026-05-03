@@ -105,7 +105,7 @@ class DownloadWorkerWriteTest {
                 write(data, new ChunkRange(95, 105))
         );
 
-        assertTrue(ex.getCause() instanceof IllegalArgumentException);
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
     }
 
     @Test
@@ -116,7 +116,7 @@ class DownloadWorkerWriteTest {
                 write(data, new ChunkRange(10, 20)) // expects 10 bytes
         );
 
-        assertTrue(ex.getCause() instanceof IllegalArgumentException);
+        assertInstanceOf(IllegalArgumentException.class, ex.getCause());
     }
 
     @Test

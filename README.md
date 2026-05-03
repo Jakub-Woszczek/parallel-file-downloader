@@ -97,12 +97,16 @@ java -cp out downloader.Main <url> <output-file>
 
 ## Possible Improvements
 
-- The next major improvement would be implementing **wrapper around retry logic** that comes up couple times in I/O
-  actions. Due to short deadline I decided to ship reliable code but I deem it 'to improve'.
-- Another improvement I considered would be to implement threads as `executorService` for reliable scaling.
-- For even better and more reliable testing some functional tests (apart from unit and behavioral) would make software
-  better, eg using `WireMock` or `MockServer`.
+* Introduce a reusable **retry abstraction** for I/O operations. The retry logic currently appears in multiple places,
+  and extracting it into a dedicated wrapper would improve maintainability and reduce duplication. Due to time
+  constraints, the focus was on delivering a reliable implementation, but this is a clear candidate for refactoring.
 
-*Sophisticated:*
+* Replace manual thread management with an `ExecutorService` to provide more robust and scalable thread handling.
 
-- Dynamic tuning `chunkSize`/`threadsPerCore` based on heap usage/network bandwidth saturation/file size 
+* Expand test coverage with **functional/integration tests** (in addition to unit and behavioral tests), for example
+  using tools like `WireMock` or `MockServer`, to better simulate real HTTP interactions.
+
+*Sophisticated*
+
+* Implement **dynamic tuning** of `chunkSize` and `threadsPerCore` based on runtime conditions such as heap usage,
+  network bandwidth saturation, and file size.
