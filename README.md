@@ -3,27 +3,67 @@
 A standalone Java tool that downloads a file over HTTP using **parallel range requests** and assembles it into a single
 output file.
 
+<details>
+<summary>How it works?</summary>
+
+A `HEAD` request is first sent to the server to retrieve metadata such as
+`Content-Length` and `Accept-Ranges`, and if range requests are not supported,
+the downloader fails immediately.
+
+Orchestrator precomputes chunk ranges and run workers who download specific
+chunks in parallel by requesting byte
+ranges using the `Range: bytes=start-end` header.
+
+Each downloaded chunk is written directly to its correct position in the output
+file using `FileChannel`, ensuring proper placement without sequential writing.
+
+If an `IOException` occurs, the system retries the operation using an
+incremental backoff strategy implemented with `Thread.sleep(100L * attempts)`,
+and it ultimately fails once a configurable maximum number of attempts is reached.
+
+</details>
+
+## Implementation Highlights
+
+* **Fault Tolerance with Retries**
+  Built-in retry mechanisms with exponential backoff and jitter are applied to:
+
+    * HTTP requests
+    * File writes,file truncation (preallocation for efficient random access)
+
+* **Memory-Efficient File Writing**
+  Uses `FileChannel` with positional writes, allowing concurrent writes directly to the correct file offsets without
+  loading the entire file into memory.
+
+* **Data Integrity Validation**
+  Each downloaded chunk is validated against:
+
+    * Expected byte range, size
+
+* number of worker threads is adjusted based on available CPU cores and the number of chunks, preventing
+  unnecessary thread overhead.
+
+* code supports HTTP Range requests and **validates server responses** (e.g., `Content-Range`,
+  `Content-Length`), ensuring correctness and protocol compliance.
+
+* lock-based mechanism guarantees that each chunk is assigned exactly once, avoiding race conditions and duplicate
+  work.
+
 ## Features
 
 * Parallel chunk downloading via HTTP `Range` requests
 * Retry mechanism with backoff for transient I/O failures
 * Input validation/ unit tested
 
----
-
 ## Requirements
 
 * Java 17+
-
----
 
 ## Build
 
 ```bash
 ./gradlew build
 ```
-
----
 
 ## Run
 
@@ -47,58 +87,6 @@ java -cp out downloader.Main <url> <output-file>
 # http://localhost:8080/t_1gb.dat src/test/resources/save/savefile.dat
 ```
 
-<details>
-<summary>How it works?</summary>
-A `HEAD` request is first sent to the server to retrieve metadata such as 
-`Content-Length` and `Accept-Ranges`, and if range requests are not supported,
-the downloader fails immediately.
-
-The file is then divided into fixed-size chunks, where each chunk is defined
-by a start and end byte range and is processed independently.
-
-Multiple threads download these chunks in parallel by requesting specific byte
-ranges using the `Range: bytes=start-end` header.
-
-Each downloaded chunk is written directly to its correct position in the output
-file using `FileChannel`, ensuring proper placement without sequential writing.
-
-Writes are performed safely using positional writes, and partial writes are
-handled by repeatedly writing until the entire buffer is fully persisted;
-chunk boundaries and data length consistency are also validated.
-
-If an `IOException` occurs, the system retries the operation using an
-incremental backoff strategy implemented with `Thread.sleep(100L * attempts)`,
-and it ultimately fails once a configurable maximum number of attempts is reached.
-
-</details>
-
-## Design Decisions
-
-### Why `FileChannel`?
-
-* Supports **random-access writes**
-* Enables safe concurrent writes without explicit locking (non-overlapping ranges)
-
----
-
-### Why Parallelism?
-
-* Improves throughput for:
-
-    * high-latency networks
-    * large files
-* Controlled via configurable thread pool
-
----
-
-### Why Manual Chunking?
-
-* Avoids relying on external libraries
-* Gives deterministic control over:
-
-    * memory usage
-    * concurrency level
-
 ## Testing
 
 ```bash
@@ -115,10 +103,14 @@ and it ultimately fails once a configurable maximum number of attempts is reache
 
 ---
 
-## Limitations / Possible Improvements
+## Possible Improvements
 
-* No checksum validation (e.g., SHA-256)
-* Fixed chunk size (could be adaptive)
-* Blocking retry model (could be async/non-blocking)
-* No download resume support
-* No rate limiting or bandwidth control
+- The next major improvement would be implementing **wrapper around retry logic** that comes up couple times in I/O
+  actions. Due to short deadline I decided to ship reliable code but I deem it 'to improve'.
+- Another improvement I considered would be to implement threads as `executorService` for reliable scaling.
+- For even better and more reliable testing some functional tests (apart from unit and behavioral) would make software
+  better, eg using `WireMock` or `MockServer`.
+
+*Sophisticated:*
+
+- Dynamic tuning `chunkSize`/`threadsPerCore` based on heap usage/network bandwidth saturation/file size 
