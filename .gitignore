@@ -45,3 +45,4 @@ bin/
 src/test/resources/serverFiles/
 src/test/resources/save/
 message
+target/

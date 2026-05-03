@@ -1,5 +1,8 @@
 package downloader;
 
+import downloader.core.Orchestrator;
+import downloader.http.Client;
+
 public class Main {
     public static void main(String[] args) {
         if (args.length < 2) {

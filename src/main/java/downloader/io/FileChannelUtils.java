@@ -1,4 +1,4 @@
-package downloader;
+package downloader.io;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;

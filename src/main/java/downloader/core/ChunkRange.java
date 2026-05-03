@@ -1,4 +1,4 @@
-package downloader;
+package downloader.core;
 
 public record ChunkRange(long start, long end) {
     public ChunkRange {

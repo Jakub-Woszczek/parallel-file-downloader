@@ -1,7 +1,7 @@
 package downloader.benchmark;
 
-import downloader.ChunkRange;
-import downloader.Client;
+import downloader.core.ChunkRange;
+import downloader.http.Client;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

@@ -1,4 +1,4 @@
-package downloader;
+package downloader.io;
 
 import java.io.InputStream;
 import java.nio.file.Files;

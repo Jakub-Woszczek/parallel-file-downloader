@@ -1,4 +1,6 @@
-package downloader;
+package downloader.http;
+
+import downloader.core.ChunkRange;
 
 import java.io.IOException;
 import java.net.MalformedURLException;

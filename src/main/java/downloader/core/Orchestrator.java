@@ -1,4 +1,7 @@
-package downloader;
+package downloader.core;
+
+import downloader.http.Client;
+import downloader.io.FileChannelUtils;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;

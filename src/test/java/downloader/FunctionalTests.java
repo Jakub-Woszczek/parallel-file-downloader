@@ -1,5 +1,9 @@
 package downloader;
 
+import downloader.core.Orchestrator;
+import downloader.http.Client;
+import downloader.io.HashUtils;
+
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;

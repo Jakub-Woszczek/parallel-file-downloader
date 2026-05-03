@@ -1,4 +1,6 @@
-package downloader;
+package downloader.core;
+
+import downloader.http.Client;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

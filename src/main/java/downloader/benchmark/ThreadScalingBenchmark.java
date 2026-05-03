@@ -1,6 +1,7 @@
 package downloader.benchmark;
 
-import downloader.Orchestrator;
+import downloader.core.Orchestrator;
+import downloader.http.Client;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -82,7 +83,7 @@ public class ThreadScalingBenchmark {
 
             Orchestrator orchestrator = new Orchestrator(
                     tempFile.toString(),
-                    new downloader.Client(TEST_URL)
+                    new Client(TEST_URL)
             );
 
             orchestrator.downloadFile();

@@ -1,5 +1,9 @@
 package downloader;
 
+import downloader.core.ChunkRange;
+import downloader.core.DownloadWorker;
+import downloader.core.Orchestrator;
+import downloader.http.Client;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
