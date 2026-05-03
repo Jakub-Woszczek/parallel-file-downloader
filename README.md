@@ -49,12 +49,6 @@ and it ultimately fails once a configurable maximum number of attempts is reache
 * lock-based mechanism guarantees that each chunk is assigned exactly once, avoiding race conditions and duplicate
   work.
 
-## Features
-
-* Parallel chunk downloading via HTTP `Range` requests
-* Retry mechanism with backoff for transient I/O failures
-* Input validation/ unit tested
-
 ## Requirements
 
 * Java 17+
