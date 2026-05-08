@@ -35,6 +35,7 @@ public class Orchestrator implements AutoCloseable {
     private final ReentrantLock lock = new ReentrantLock();
     private int chunkIndex = 0;
     private long[] indexArray;
+    private long downloadProgress = 0; // How many bytes of file is already downloaded
 
     public Orchestrator(String path, Client httpClient) {
         this.httpClient = httpClient;
@@ -61,7 +62,9 @@ public class Orchestrator implements AutoCloseable {
         FileChannelUtils.truncateWithRetry(fileChannel, fileSize);
 
         Thread[] threads = new Thread[threadsCount];
-        try {
+        try (ProgressReporter progressReporter = new ProgressReporter()) {
+            progressReporter.start(this);
+
             for (int i = 0; i < threadsCount; i++) {
                 DownloadWorker worker = new DownloadWorker(this, fileChannel, httpClient);
 
@@ -80,6 +83,8 @@ public class Orchestrator implements AutoCloseable {
             }
             throw e;
         }
+        System.out.print("\rDownloaded: 100%%");
+        System.out.flush();
     }
 
     /**
@@ -148,6 +153,27 @@ public class Orchestrator implements AutoCloseable {
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize save file: ", e);
+        }
+    }
+
+    /**
+     * All workers update here their chunkSize
+     */
+    public void downloadProgressUpdate(long chunkSize) {
+        lock.lock();
+        try {
+            downloadProgress += chunkSize;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public int getDownloadProcent() {
+        lock.lock();
+        try {
+            return (int) ((downloadProgress * 100) / fileSize);
+        } finally {
+            lock.unlock();
         }
     }
 

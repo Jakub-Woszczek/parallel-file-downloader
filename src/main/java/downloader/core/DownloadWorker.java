@@ -37,6 +37,7 @@ public class DownloadWorker implements Runnable {
             try {
                 byte[] data = httpClient.fetchChunk(chunkRange);
                 writeToFile(data, chunkRange);
+                orchestrator.downloadProgressUpdate(data.length);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;

@@ -16,9 +16,9 @@ public class Main {
         try (Client client = new Client(url);
              Orchestrator orchestrator = new Orchestrator(outputPath, client)) {
             orchestrator.downloadFile();
-            System.out.println("Download completed: " + outputPath);
+            System.out.println("\nDownload completed: " + outputPath);
         } catch (Exception e) {
-            System.err.println("Download failed: " + e.getMessage());
+            System.err.println("\nDownload failed: " + e.getMessage());
             System.exit(1);
         }
     }

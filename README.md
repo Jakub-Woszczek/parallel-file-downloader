@@ -65,7 +65,7 @@ Compile project
 javac -d out $(find src/main/java -name "*.java")
 ```
 
-Run docker server (from which you download file):
+Run docker server (from which you download file), you may need to have *docker desktop* turned on:
 
 ```bash
 docker run --rm -p 8080:80 -v /path/to/your/local/directory:/usr/local/apache2/htdocs/ httpd:latest
